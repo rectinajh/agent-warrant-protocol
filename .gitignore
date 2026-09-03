@@ -1,9 +1,11 @@
 .DS_Store
-.env
-.env.*
-!.env.example
 .gstack/
 node_modules/
 dist/
 .next/
 coverage/
+.vercel
+.env
+.env.*
+.env*
+!.env.example
