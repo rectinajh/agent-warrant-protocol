@@ -1,0 +1,30 @@
+{
+  "name": "agent-warrant-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Human-signed, expiring, single-use warrants for high-risk AI agent actions.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit && prettier --check .",
+    "demo": "tsx scripts/demo.ts",
+    "format": "prettier --write .",
+    "serve": "tsx scripts/serve.ts",
+    "spike": "tsx scripts/spike.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

@@ -1,12 +1,12 @@
 # Agent Warrant Protocol: Technical Architecture
 
-Status: Proposed architecture
+Status: Protocol core plus Foxit, Xano, name.com, and kimi integrations implemented; lightweight operator UI shipped
 
 Version: 0.1
 
 Date: 2026-09-03
 
-This document defines the implementation contract for the hackathon MVP. It describes planned behavior. No product implementation exists at the time of writing.
+This document defines the implementation contract for the hackathon MVP. The TypeScript protocol core, test repository, execution engine, audit chain, name.com sandbox client, Foxit eSign client, Xano persistence layer, kimi-based proposal generator, and a lightweight Node/HTML operator UI exist and have been exercised end-to-end.
 
 ## 1. Architecture goals
 
@@ -161,14 +161,14 @@ Relevant official surfaces:
 
 ## 4. Trust boundaries
 
-| Boundary | Trusted input | Untrusted input | Enforcement |
-|---|---|---|---|
-| Browser to Xano | Auth token issued by Xano | All body fields and UI state | Schema validation, allowlist, server-owned fields |
-| Model to Xano | Nothing by default | Entire model response | Strict schema, extra-field rejection, server scope check |
-| Foxit callback to Xano | Callback as a wake-up signal | Claimed event and status | Query Foxit directly before transition |
-| Xano to name.com | Frozen executable payload | Provider response until validated | Exact request construction and re-read |
-| Stored warrant to executor | Server-owned record in `AUTHORIZED` state | Any mutable or missing field | Recompute digests and atomic compare-and-set |
-| Receipt to reader | Hashes and observed provider state | Human interpretation | Explicit labels and no compliance claims |
+| Boundary                   | Trusted input                             | Untrusted input                   | Enforcement                                              |
+| -------------------------- | ----------------------------------------- | --------------------------------- | -------------------------------------------------------- |
+| Browser to Xano            | Auth token issued by Xano                 | All body fields and UI state      | Schema validation, allowlist, server-owned fields        |
+| Model to Xano              | Nothing by default                        | Entire model response             | Strict schema, extra-field rejection, server scope check |
+| Foxit callback to Xano     | Callback as a wake-up signal              | Claimed event and status          | Query Foxit directly before transition                   |
+| Xano to name.com           | Frozen executable payload                 | Provider response until validated | Exact request construction and re-read                   |
+| Stored warrant to executor | Server-owned record in `AUTHORIZED` state | Any mutable or missing field      | Recompute digests and atomic compare-and-set             |
+| Receipt to reader          | Hashes and observed provider state        | Human interpretation              | Explicit labels and no compliance claims                 |
 
 ## 5. Core invariants
 
@@ -204,15 +204,15 @@ Canonicalization should use JSON Canonicalization Scheme, RFC 8785, or a byte-id
     "record_id": 12345
   },
   "precondition": {
-    "type": "CNAME",
+    "type": "A",
     "host": "status",
-    "answer": "normal-status-page.example.",
+    "answer": "192.0.2.10",
     "ttl": 300
   },
   "effect": {
-    "type": "CNAME",
+    "type": "A",
     "host": "status",
-    "answer": "emergency-status-page.example.",
+    "answer": "192.0.2.11",
     "ttl": 300
   }
 }
@@ -344,128 +344,128 @@ Xano table names are proposed contracts. Field types should map to native Xano t
 
 ### 9.1 `actors`
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | uuid | Primary key |
-| `kind` | enum | `human` or `agent` |
-| `display_name` | text | Demo-safe name |
+| Field             | Type          | Notes                                |
+| ----------------- | ------------- | ------------------------------------ |
+| `id`              | uuid          | Primary key                          |
+| `kind`            | enum          | `human` or `agent`                   |
+| `display_name`    | text          | Demo-safe name                       |
 | `email_encrypted` | text nullable | Human signer only, restricted access |
-| `email_sha256` | text nullable | Used in warrant and receipt |
-| `status` | enum | `active` or `disabled` |
-| `created_at` | timestamp | UTC |
+| `email_sha256`    | text nullable | Used in warrant and receipt          |
+| `status`          | enum          | `active` or `disabled`               |
+| `created_at`      | timestamp     | UTC                                  |
 
 ### 9.2 `action_proposals`
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | uuid | Primary key |
-| `operator_id` | uuid | References human actor |
-| `agent_id` | uuid | References agent actor |
-| `prompt_ciphertext` | text | Optional encrypted prompt storage |
-| `prompt_sha256` | text | Receipt-safe reference |
-| `model_provider` | text | Provider metadata |
-| `model_name` | text | Exact model identifier |
-| `prompt_version` | text | Fixed template version |
-| `raw_output_path` | text | Restricted storage reference |
-| `raw_output_sha256` | text | Audit metadata |
-| `validated_action_json` | json | Candidate after schema validation |
-| `validation_status` | enum | `valid` or `rejected` |
-| `validation_errors_json` | json | Structured reasons |
-| `created_at` | timestamp | UTC |
+| Field                    | Type      | Notes                             |
+| ------------------------ | --------- | --------------------------------- |
+| `id`                     | uuid      | Primary key                       |
+| `operator_id`            | uuid      | References human actor            |
+| `agent_id`               | uuid      | References agent actor            |
+| `prompt_ciphertext`      | text      | Optional encrypted prompt storage |
+| `prompt_sha256`          | text      | Receipt-safe reference            |
+| `model_provider`         | text      | Provider metadata                 |
+| `model_name`             | text      | Exact model identifier            |
+| `prompt_version`         | text      | Fixed template version            |
+| `raw_output_path`        | text      | Restricted storage reference      |
+| `raw_output_sha256`      | text      | Audit metadata                    |
+| `validated_action_json`  | json      | Candidate after schema validation |
+| `validation_status`      | enum      | `valid` or `rejected`             |
+| `validation_errors_json` | json      | Structured reasons                |
+| `created_at`             | timestamp | UTC                               |
 
 ### 9.3 `warrants`
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | uuid | Warrant ID |
-| `proposal_id` | uuid | Source proposal |
-| `version` | text | `warrant.v1` |
-| `agent_id` | uuid | Authorized agent |
-| `signer_id` | uuid | Expected human |
-| `action_json` | json | Frozen executable payload |
-| `action_digest` | text | SHA-256 hex |
-| `authorization_json` | json | Frozen authorization envelope |
-| `warrant_digest` | text | SHA-256 hex |
-| `nonce_sha256` | text | Do not expose raw nonce after use |
-| `max_executions` | integer | Fixed to 1 |
-| `execution_count` | integer | Starts at 0 |
-| `state` | enum | Warrant lifecycle state |
-| `issued_at` | timestamp | UTC |
-| `not_before` | timestamp | UTC |
-| `expires_at` | timestamp | UTC |
-| `state_version` | integer | Compare-and-set version |
-| `created_at` | timestamp | UTC |
-| `updated_at` | timestamp | UTC |
+| Field                | Type      | Notes                             |
+| -------------------- | --------- | --------------------------------- |
+| `id`                 | uuid      | Warrant ID                        |
+| `proposal_id`        | uuid      | Source proposal                   |
+| `version`            | text      | `warrant.v1`                      |
+| `agent_id`           | uuid      | Authorized agent                  |
+| `signer_id`          | uuid      | Expected human                    |
+| `action_json`        | json      | Frozen executable payload         |
+| `action_digest`      | text      | SHA-256 hex                       |
+| `authorization_json` | json      | Frozen authorization envelope     |
+| `warrant_digest`     | text      | SHA-256 hex                       |
+| `nonce_sha256`       | text      | Do not expose raw nonce after use |
+| `max_executions`     | integer   | Fixed to 1                        |
+| `execution_count`    | integer   | Starts at 0                       |
+| `state`              | enum      | Warrant lifecycle state           |
+| `issued_at`          | timestamp | UTC                               |
+| `not_before`         | timestamp | UTC                               |
+| `expires_at`         | timestamp | UTC                               |
+| `state_version`      | integer   | Compare-and-set version           |
+| `created_at`         | timestamp | UTC                               |
+| `updated_at`         | timestamp | UTC                               |
 
 Executable and authorization fields become immutable when state leaves `DRAFT`.
 
 ### 9.4 `signing_envelopes`
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | uuid | Internal ID |
-| `warrant_id` | uuid | Unique reference |
-| `provider` | text | `foxit` |
-| `provider_envelope_id` | text | Unique |
-| `provider_status` | text | Last verified status |
-| `unsigned_pdf_path` | text | Private storage reference |
-| `unsigned_pdf_sha256` | text | Hash before send |
-| `signed_pdf_path` | text nullable | Private completed artifact |
-| `signed_pdf_sha256` | text nullable | Hash after completion |
-| `signing_url_ciphertext` | text nullable | Short-lived, never logged |
-| `last_verified_at` | timestamp nullable | UTC |
-| `created_at` | timestamp | UTC |
+| Field                    | Type               | Notes                      |
+| ------------------------ | ------------------ | -------------------------- |
+| `id`                     | uuid               | Internal ID                |
+| `warrant_id`             | uuid               | Unique reference           |
+| `provider`               | text               | `foxit`                    |
+| `provider_envelope_id`   | text               | Unique                     |
+| `provider_status`        | text               | Last verified status       |
+| `unsigned_pdf_path`      | text               | Private storage reference  |
+| `unsigned_pdf_sha256`    | text               | Hash before send           |
+| `signed_pdf_path`        | text nullable      | Private completed artifact |
+| `signed_pdf_sha256`      | text nullable      | Hash after completion      |
+| `signing_url_ciphertext` | text nullable      | Short-lived, never logged  |
+| `last_verified_at`       | timestamp nullable | UTC                        |
+| `created_at`             | timestamp          | UTC                        |
 
 ### 9.5 `executions`
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | uuid | Primary key |
-| `warrant_id` | uuid | Unique for MVP |
-| `idempotency_key` | text | Unique digest of warrant and attempt |
-| `state` | enum | Execution lifecycle |
-| `requested_action_json` | json | Byte-equivalent to frozen action |
-| `preflight_record_json` | json | Live state before mutation |
-| `provider_request_sha256` | text | Hash of outbound request |
-| `provider_request_id` | text nullable | If returned by name.com |
-| `provider_response_path` | text nullable | Restricted raw response |
-| `provider_response_sha256` | text nullable | Audit metadata |
-| `observed_record_json` | json nullable | Read-after-write result |
-| `error_code` | text nullable | Stable internal code |
-| `started_at` | timestamp | UTC |
-| `completed_at` | timestamp nullable | UTC |
+| Field                      | Type               | Notes                                |
+| -------------------------- | ------------------ | ------------------------------------ |
+| `id`                       | uuid               | Primary key                          |
+| `warrant_id`               | uuid               | Unique for MVP                       |
+| `idempotency_key`          | text               | Unique digest of warrant and attempt |
+| `state`                    | enum               | Execution lifecycle                  |
+| `requested_action_json`    | json               | Byte-equivalent to frozen action     |
+| `preflight_record_json`    | json               | Live state before mutation           |
+| `provider_request_sha256`  | text               | Hash of outbound request             |
+| `provider_request_id`      | text nullable      | If returned by name.com              |
+| `provider_response_path`   | text nullable      | Restricted raw response              |
+| `provider_response_sha256` | text nullable      | Audit metadata                       |
+| `observed_record_json`     | json nullable      | Read-after-write result              |
+| `error_code`               | text nullable      | Stable internal code                 |
+| `started_at`               | timestamp          | UTC                                  |
+| `completed_at`             | timestamp nullable | UTC                                  |
 
 ### 9.6 `audit_events`
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | uuid | Primary key |
-| `warrant_id` | uuid | Event stream key |
-| `sequence` | integer | Unique within warrant |
-| `event_type` | text | Stable event name |
-| `actor_kind` | enum | `human`, `agent`, `system`, or `provider` |
-| `actor_id` | text | Internal or provider ID |
-| `before_state` | text nullable | Previous state |
-| `after_state` | text nullable | New state |
-| `metadata_json` | json | Redacted event details |
-| `previous_event_hash` | text nullable | Null for first event |
-| `event_hash` | text | SHA-256 over canonical event record |
-| `created_at` | timestamp | UTC |
+| Field                 | Type          | Notes                                     |
+| --------------------- | ------------- | ----------------------------------------- |
+| `id`                  | uuid          | Primary key                               |
+| `warrant_id`          | uuid          | Event stream key                          |
+| `sequence`            | integer       | Unique within warrant                     |
+| `event_type`          | text          | Stable event name                         |
+| `actor_kind`          | enum          | `human`, `agent`, `system`, or `provider` |
+| `actor_id`            | text          | Internal or provider ID                   |
+| `before_state`        | text nullable | Previous state                            |
+| `after_state`         | text nullable | New state                                 |
+| `metadata_json`       | json          | Redacted event details                    |
+| `previous_event_hash` | text nullable | Null for first event                      |
+| `event_hash`          | text          | SHA-256 over canonical event record       |
+| `created_at`          | timestamp     | UTC                                       |
 
 The application exposes no update or delete endpoint for audit events.
 
 ### 9.7 `receipts`
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | uuid | Primary key |
-| `warrant_id` | uuid | Unique |
-| `execution_id` | uuid | Unique |
-| `receipt_version` | text | `receipt.v1` |
-| `receipt_json` | json | Public-safe receipt |
-| `receipt_sha256` | text | Canonical JSON digest |
-| `event_chain_head` | text | Final audit-event hash |
-| `created_at` | timestamp | UTC |
+| Field              | Type      | Notes                  |
+| ------------------ | --------- | ---------------------- |
+| `id`               | uuid      | Primary key            |
+| `warrant_id`       | uuid      | Unique                 |
+| `execution_id`     | uuid      | Unique                 |
+| `receipt_version`  | text      | `receipt.v1`           |
+| `receipt_json`     | json      | Public-safe receipt    |
+| `receipt_sha256`   | text      | Canonical JSON digest  |
+| `event_chain_head` | text      | Final audit-event hash |
+| `created_at`       | timestamp | UTC                    |
 
 ## 10. API surface
 
@@ -662,19 +662,19 @@ If the provider request times out after dispatch, keep the execution reserved an
 
 ## 15. Threat model
 
-| Threat | Attack | Control | Residual risk |
-|---|---|---|---|
-| Prompt injection | Intent asks the model to ignore scope | Strict schema and server allowlist | Model may create noisy proposals, but cannot execute |
-| Target substitution | Browser changes domain or record after preview | Executor ignores client action fields | Compromised backend remains trusted |
-| Signature spoofing | Attacker calls callback endpoint with `completed` | Direct Foxit status query and envelope binding | Foxit account compromise is outside MVP |
-| TOCTOU race | DNS changes after signing but before execution | Immediate provider re-read and exact precondition | Change could race between read and write if provider lacks conditional update |
-| Replay | Same warrant executed twice | Atomic reservation, nonce, unique execution row | Requires proven Xano compare-and-set behavior |
-| Stale response | Old provider response arrives late | State version and immutable attempt record | Provider inconsistency may require reconciliation |
-| Credential exposure | Browser or logs reveal API token | Server secrets and redacted logging | Xano admin access remains sensitive |
-| Receipt tampering | Receipt JSON edited after download | Receipt hash and audit-chain head | No independent public anchor in P0 |
-| PDF/action mismatch | Rendered PDF differs from stored JSON | Deterministic template, visible digests, stored hashes | Full semantic PDF re-parsing is deferred |
-| SSRF or arbitrary API call | Proposal injects URL or provider | Fixed adapter and target allowlist | New action types require separate review |
-| XSS | Prompt or reason renders script content | Contextual output escaping | PDF/template engine behavior must be tested |
+| Threat                     | Attack                                            | Control                                                | Residual risk                                                                 |
+| -------------------------- | ------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Prompt injection           | Intent asks the model to ignore scope             | Strict schema and server allowlist                     | Model may create noisy proposals, but cannot execute                          |
+| Target substitution        | Browser changes domain or record after preview    | Executor ignores client action fields                  | Compromised backend remains trusted                                           |
+| Signature spoofing         | Attacker calls callback endpoint with `completed` | Direct Foxit status query and envelope binding         | Foxit account compromise is outside MVP                                       |
+| TOCTOU race                | DNS changes after signing but before execution    | Immediate provider re-read and exact precondition      | Change could race between read and write if provider lacks conditional update |
+| Replay                     | Same warrant executed twice                       | Atomic reservation, nonce, unique execution row        | Requires proven Xano compare-and-set behavior                                 |
+| Stale response             | Old provider response arrives late                | State version and immutable attempt record             | Provider inconsistency may require reconciliation                             |
+| Credential exposure        | Browser or logs reveal API token                  | Server secrets and redacted logging                    | Xano admin access remains sensitive                                           |
+| Receipt tampering          | Receipt JSON edited after download                | Receipt hash and audit-chain head                      | No independent public anchor in P0                                            |
+| PDF/action mismatch        | Rendered PDF differs from stored JSON             | Deterministic template, visible digests, stored hashes | Full semantic PDF re-parsing is deferred                                      |
+| SSRF or arbitrary API call | Proposal injects URL or provider                  | Fixed adapter and target allowlist                     | New action types require separate review                                      |
+| XSS                        | Prompt or reason renders script content           | Contextual output escaping                             | PDF/template engine behavior must be tested                                   |
 
 ### TOCTOU limitation
 
@@ -682,18 +682,18 @@ Time-of-check-to-time-of-use risk cannot be fully eliminated if name.com does no
 
 ## 16. Failure handling
 
-| Failure | State | User-visible result | Mutation policy |
-|---|---|---|---|
-| Model timeout | Proposal rejected | Retry proposal or use disclosed prepared response | No external mutation |
-| Foxit PDF failure | Warrant remains `DRAFT` | Show provider error and retry generation | No envelope or DNS mutation |
-| Foxit signing URL expires | `PENDING_SIGNATURE` | Regenerate session if envelope remains valid | No DNS mutation |
-| False or duplicate callback | No unsafe transition | Verification remains pending or idempotently complete | No DNS mutation |
-| Warrant expires | `EXPIRED` | Issue a new warrant | No DNS mutation |
-| DNS precondition differs | `FAILED`; reserved warrant remains consumed | Show signed and current values | No DNS mutation |
-| name.com rejects request | `FAILED` | Show redacted provider error | Mutation attempted once |
-| name.com times out | `RECONCILING` | Show unknown state, then re-read | No blind retry |
-| Postcondition differs | `FAILED` | Show requested and observed values | Manual investigation |
-| Receipt generation fails | `EXECUTED` with receipt repair task | Do not claim action failed; rebuild receipt from events | No second DNS mutation |
+| Failure                     | State                                       | User-visible result                                     | Mutation policy             |
+| --------------------------- | ------------------------------------------- | ------------------------------------------------------- | --------------------------- |
+| Model timeout               | Proposal rejected                           | Retry proposal or use disclosed prepared response       | No external mutation        |
+| Foxit PDF failure           | Warrant remains `DRAFT`                     | Show provider error and retry generation                | No envelope or DNS mutation |
+| Foxit signing URL expires   | `PENDING_SIGNATURE`                         | Regenerate session if envelope remains valid            | No DNS mutation             |
+| False or duplicate callback | No unsafe transition                        | Verification remains pending or idempotently complete   | No DNS mutation             |
+| Warrant expires             | `EXPIRED`                                   | Issue a new warrant                                     | No DNS mutation             |
+| DNS precondition differs    | `FAILED`; reserved warrant remains consumed | Show signed and current values                          | No DNS mutation             |
+| name.com rejects request    | `FAILED`                                    | Show redacted provider error                            | Mutation attempted once     |
+| name.com times out          | `RECONCILING`                               | Show unknown state, then re-read                        | No blind retry              |
+| Postcondition differs       | `FAILED`                                    | Show requested and observed values                      | Manual investigation        |
+| Receipt generation fails    | `EXECUTED` with receipt repair task         | Do not claim action failed; rebuild receipt from events | No second DNS mutation      |
 
 ## 17. Deployment model
 

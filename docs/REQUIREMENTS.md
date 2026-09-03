@@ -1,6 +1,6 @@
 # Agent Warrant Protocol: Product Requirements
 
-Status: Draft for implementation
+Status: Implemented and verified end-to-end
 
 Version: 0.1
 
@@ -74,13 +74,13 @@ The fixed demonstration uses a sandbox domain and record owned by the team.
 Initial state:
 
 ```text
-status.<sandbox-domain> CNAME normal-status-page.example.
+status.<sandbox-domain> A 192.0.2.10
 ```
 
 Operator request:
 
 ```text
-Switch the status subdomain to emergency-status-page.example now.
+Switch the status subdomain to the emergency status address now.
 ```
 
 Proposed action:
@@ -90,10 +90,10 @@ Proposed action:
   "action_type": "dns.record.update",
   "domain": "<sandbox-domain>",
   "record_id": 12345,
-  "record_type": "CNAME",
+  "record_type": "A",
   "host": "status",
-  "expected_current_answer": "normal-status-page.example.",
-  "proposed_answer": "emergency-status-page.example.",
+  "expected_current_answer": "192.0.2.10",
+  "proposed_answer": "192.0.2.11",
   "ttl": 300,
   "max_executions": 1,
   "expires_in_seconds": 600
@@ -202,28 +202,28 @@ Expected outcome:
 
 Priority meanings: P0 is required for the primary demo. P1 is required if the core path is stable. P2 is a stretch goal.
 
-| ID | Priority | Requirement | Acceptance condition |
-|---|---:|---|---|
-| FR-001 | P0 | Accept a plain-language DNS-change request | A fixed demo request produces one schema-valid proposal or a visible validation error |
-| FR-002 | P0 | Restrict proposals to the configured sandbox target | A different domain, record ID, action type, or unsupported record type is rejected server-side |
-| FR-003 | P0 | Read the current DNS state from name.com | The proposal screen displays the provider-observed record, not an AI assertion |
-| FR-004 | P0 | Render an exact before-and-after diff | Domain, host, type, TTL, old answer, and new answer are visible before warrant creation |
-| FR-005 | P0 | Create canonical warrant data | Identical normalized inputs produce the same action digest |
-| FR-006 | P0 | Generate a warrant PDF using Foxit | The PDF includes action and warrant digests, scope, signer, expiry, nonce, old value, and new value |
-| FR-007 | P0 | Send the warrant through Foxit eSign | The expected signer can open and complete the signing flow |
-| FR-008 | P0 | Verify signing server-side | A browser redirect alone cannot set a warrant to `AUTHORIZED` |
-| FR-009 | P0 | Enforce expiry | Execution after `expires_at` fails without calling name.com |
-| FR-010 | P0 | Enforce single use | A successful warrant cannot enter `EXECUTING` a second time |
-| FR-011 | P0 | Enforce optimistic precondition | A changed live DNS answer causes `PRECONDITION_CHANGED` and no mutation |
-| FR-012 | P0 | Execute the exact signed mutation | The name.com request fields match the canonical signed payload exactly |
-| FR-013 | P0 | Verify provider state after execution | Success is shown only after name.com returns the expected record on re-read |
-| FR-014 | P0 | Preserve an audit chain | Every transition stores the previous event hash and its own deterministic hash |
-| FR-015 | P0 | Produce an execution receipt | Receipt binds prompt hash, action digest, signed-PDF hash, provider result, and event-chain head |
-| FR-016 | P0 | Display failures without pretending success | Every failed gate names its error and confirms whether the DNS mutation was attempted |
-| FR-017 | P1 | Download receipt JSON | Downloaded JSON validates against the receipt schema documented in architecture |
-| FR-018 | P1 | Show the signed warrant | Authorized and terminal warrant pages link to the retrieved signed artifact |
-| FR-019 | P1 | Publish receipt digest as DNS TXT | After execution, an optional second approved operation creates a `_warrant` TXT proof record |
-| FR-020 | P2 | Generate a PDF receipt | Foxit converts the final HTML receipt into a downloadable PDF |
+| ID     | Priority | Requirement                                         | Acceptance condition                                                                                |
+| ------ | -------: | --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| FR-001 |       P0 | Accept a plain-language DNS-change request          | A fixed demo request produces one schema-valid proposal or a visible validation error               |
+| FR-002 |       P0 | Restrict proposals to the configured sandbox target | A different domain, record ID, action type, or unsupported record type is rejected server-side      |
+| FR-003 |       P0 | Read the current DNS state from name.com            | The proposal screen displays the provider-observed record, not an AI assertion                      |
+| FR-004 |       P0 | Render an exact before-and-after diff               | Domain, host, type, TTL, old answer, and new answer are visible before warrant creation             |
+| FR-005 |       P0 | Create canonical warrant data                       | Identical normalized inputs produce the same action digest                                          |
+| FR-006 |       P0 | Generate a warrant PDF using Foxit                  | The PDF includes action and warrant digests, scope, signer, expiry, nonce, old value, and new value |
+| FR-007 |       P0 | Send the warrant through Foxit eSign                | The expected signer can open and complete the signing flow                                          |
+| FR-008 |       P0 | Verify signing server-side                          | A browser redirect alone cannot set a warrant to `AUTHORIZED`                                       |
+| FR-009 |       P0 | Enforce expiry                                      | Execution after `expires_at` fails without calling name.com                                         |
+| FR-010 |       P0 | Enforce single use                                  | A successful warrant cannot enter `EXECUTING` a second time                                         |
+| FR-011 |       P0 | Enforce optimistic precondition                     | A changed live DNS answer causes `PRECONDITION_CHANGED` and no mutation                             |
+| FR-012 |       P0 | Execute the exact signed mutation                   | The name.com request fields match the canonical signed payload exactly                              |
+| FR-013 |       P0 | Verify provider state after execution               | Success is shown only after name.com returns the expected record on re-read                         |
+| FR-014 |       P0 | Preserve an audit chain                             | Every transition stores the previous event hash and its own deterministic hash                      |
+| FR-015 |       P0 | Produce an execution receipt                        | Receipt binds prompt hash, action digest, signed-PDF hash, provider result, and event-chain head    |
+| FR-016 |       P0 | Display failures without pretending success         | Every failed gate names its error and confirms whether the DNS mutation was attempted               |
+| FR-017 |       P1 | Download receipt JSON                               | Downloaded JSON validates against the receipt schema documented in architecture                     |
+| FR-018 |       P1 | Show the signed warrant                             | Authorized and terminal warrant pages link to the retrieved signed artifact                         |
+| FR-019 |       P1 | Publish receipt digest as DNS TXT                   | After execution, an optional second approved operation creates a `_warrant` TXT proof record        |
+| FR-020 |       P2 | Generate a PDF receipt                              | Foxit converts the final HTML receipt into a downloadable PDF                                       |
 
 FR-019 must not enter the P0 path unless it is included in the original signed action bundle. Publishing a TXT record is a second mutation and cannot be smuggled into the first authorization.
 
@@ -263,24 +263,24 @@ The model performs proposal drafting only.
 
 A warrant must contain:
 
-| Field | Source | Rule |
-|---|---|---|
-| `warrant_id` | Backend | UUID generated once |
-| `version` | Backend | Fixed to `warrant.v1` for MVP |
-| `agent_id` | Backend configuration | Cannot come from model output |
-| `action_type` | Validated proposal | Must equal `dns.record.update` |
-| `resource` | Backend allowlist plus provider read | Exact domain and record ID |
-| `precondition` | name.com read | Exact current type, host, answer, TTL, and record ID |
-| `effect` | Validated proposal | Exact replacement answer and TTL |
-| `reason` | Operator plus AI draft | Human-readable, not used for execution equality |
-| `signer_email_hash` | Backend configuration | Store hash in public receipt; private email remains restricted |
-| `issued_at` | Backend clock | UTC ISO 8601 |
-| `not_before` | Backend clock | Equal to or after issuance |
-| `expires_at` | Backend policy | Ten minutes after issuance |
-| `nonce` | Cryptographic random generator | At least 128 bits, single use |
-| `max_executions` | Backend policy | Fixed to 1 |
-| `action_digest` | Backend | SHA-256 over canonical executable fields |
-| `warrant_digest` | Backend | SHA-256 over the authorization envelope that binds the action digest, agent, signer, expiry, nonce, and use limit |
+| Field               | Source                               | Rule                                                                                                              |
+| ------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `warrant_id`        | Backend                              | UUID generated once                                                                                               |
+| `version`           | Backend                              | Fixed to `warrant.v1` for MVP                                                                                     |
+| `agent_id`          | Backend configuration                | Cannot come from model output                                                                                     |
+| `action_type`       | Validated proposal                   | Must equal `dns.record.update`                                                                                    |
+| `resource`          | Backend allowlist plus provider read | Exact domain and record ID                                                                                        |
+| `precondition`      | name.com read                        | Exact current type, host, answer, TTL, and record ID                                                              |
+| `effect`            | Validated proposal                   | Exact replacement answer and TTL                                                                                  |
+| `reason`            | Operator plus AI draft               | Human-readable, not used for execution equality                                                                   |
+| `signer_email_hash` | Backend configuration                | Store hash in public receipt; private email remains restricted                                                    |
+| `issued_at`         | Backend clock                        | UTC ISO 8601                                                                                                      |
+| `not_before`        | Backend clock                        | Equal to or after issuance                                                                                        |
+| `expires_at`        | Backend policy                       | Ten minutes after issuance                                                                                        |
+| `nonce`             | Cryptographic random generator       | At least 128 bits, single use                                                                                     |
+| `max_executions`    | Backend policy                       | Fixed to 1                                                                                                        |
+| `action_digest`     | Backend                              | SHA-256 over canonical executable fields                                                                          |
+| `warrant_digest`    | Backend                              | SHA-256 over the authorization envelope that binds the action digest, agent, signer, expiry, nonce, and use limit |
 
 The human-readable PDF and canonical JSON must display the same executable fields. The system must reject execution if the stored digest no longer matches a fresh canonicalization.
 
@@ -366,19 +366,19 @@ NOT_STARTED -> RESERVED -> PROVIDER_ACCEPTED -> VERIFIED
 
 The UI and API must distinguish at least:
 
-| Code | Meaning | Mutation attempted? | Recovery |
-|---|---|---:|---|
-| `PROPOSAL_INVALID` | Model output failed validation | No | Revise prompt or use prepared valid proposal |
-| `TARGET_NOT_ALLOWED` | Requested resource is outside demo scope | No | Use configured sandbox target |
-| `WARRANT_EXPIRED` | Authorization deadline passed | No | Issue a new warrant |
-| `SIGNATURE_NOT_VERIFIED` | Foxit does not report completed envelope | No | Refresh or complete signing |
-| `SIGNED_ARTIFACT_MISMATCH` | Signed artifact or envelope does not match warrant | No | Cancel and issue a new warrant |
-| `PRECONDITION_CHANGED` | DNS changed after signing | No | Failed warrant remains consumed; review live state and issue a new warrant |
-| `WARRANT_ALREADY_CONSUMED` | Nonce or warrant was already executed | No | Inspect original receipt |
-| `EXECUTION_IN_PROGRESS` | Another request owns the atomic reservation | No additional mutation | Poll current execution |
-| `PROVIDER_REJECTED` | name.com rejected the mutation | Yes | Inspect provider response; create new warrant if needed |
-| `UNKNOWN_PROVIDER_STATE` | Request timed out after dispatch | Possibly | Re-read provider state; never blind-retry |
-| `POSTCONDITION_FAILED` | Provider state does not match signed effect | Yes | Mark failed and investigate manually |
+| Code                       | Meaning                                            |    Mutation attempted? | Recovery                                                                   |
+| -------------------------- | -------------------------------------------------- | ---------------------: | -------------------------------------------------------------------------- |
+| `PROPOSAL_INVALID`         | Model output failed validation                     |                     No | Revise prompt or use prepared valid proposal                               |
+| `TARGET_NOT_ALLOWED`       | Requested resource is outside demo scope           |                     No | Use configured sandbox target                                              |
+| `WARRANT_EXPIRED`          | Authorization deadline passed                      |                     No | Issue a new warrant                                                        |
+| `SIGNATURE_NOT_VERIFIED`   | Foxit does not report completed envelope           |                     No | Refresh or complete signing                                                |
+| `SIGNED_ARTIFACT_MISMATCH` | Signed artifact or envelope does not match warrant |                     No | Cancel and issue a new warrant                                             |
+| `PRECONDITION_CHANGED`     | DNS changed after signing                          |                     No | Failed warrant remains consumed; review live state and issue a new warrant |
+| `WARRANT_ALREADY_CONSUMED` | Nonce or warrant was already executed              |                     No | Inspect original receipt                                                   |
+| `EXECUTION_IN_PROGRESS`    | Another request owns the atomic reservation        | No additional mutation | Poll current execution                                                     |
+| `PROVIDER_REJECTED`        | name.com rejected the mutation                     |                    Yes | Inspect provider response; create new warrant if needed                    |
+| `UNKNOWN_PROVIDER_STATE`   | Request timed out after dispatch                   |               Possibly | Re-read provider state; never blind-retry                                  |
+| `POSTCONDITION_FAILED`     | Provider state does not match signed effect        |                    Yes | Mark failed and investigate manually                                       |
 
 ## 15. Analytics and evidence
 

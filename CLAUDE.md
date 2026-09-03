@@ -3,6 +3,7 @@
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
 
 Key routing rules:
+
 - Product ideas/brainstorming → invoke /office-hours
 - Strategy/scope → invoke /plan-ceo-review
 - Architecture → invoke /plan-eng-review
@@ -27,4 +28,4 @@ Project documentation is the current source of truth:
 - `docs/REQUIREMENTS.md`: MVP scope, user requirements, acceptance criteria, and delivery plan.
 - `docs/ARCHITECTURE.md`: trust boundaries, state machines, data model, APIs, integrations, and threat model.
 
-No product implementation exists yet. Do not describe planned interfaces as implemented. Keep the hackathon MVP restricted to one preconfigured name.com sandbox DNS record unless the requirements document is deliberately revised.
+The TypeScript protocol core, name.com sandbox client, Foxit live signing, Xano persistence, kimi-based structured proposal, and a lightweight operator UI are implemented and verified end-to-end. Keep the hackathon MVP restricted to one preconfigured name.com sandbox DNS record unless the requirements document is deliberately revised.

@@ -200,17 +200,47 @@ See [Technical Architecture](docs/ARCHITECTURE.md) for trust boundaries, the dat
 
 Every document is reachable from this README and distinguishes planned behavior from implemented behavior.
 
+## Development
+
+The protocol core and the three sponsor integrations are implemented in TypeScript: strict action and warrant schemas, deterministic canonicalization, dual SHA-256 digests, one-way warrant transitions, an atomic in-memory execution reference, DNS precondition and postcondition checks, replay rejection, a hash-linked audit chain, a name.com sandbox client, a Foxit eSign client, and a Xano-backed repository.
+
+Install and verify:
+
+```bash
+pnpm install
+pnpm check
+pnpm test
+pnpm build
+```
+
+Run the local protocol demonstration:
+
+```bash
+pnpm demo
+```
+
+The command prints `SIMULATION ONLY` because it deliberately replaces Foxit and name.com with test adapters. It executes one warrant, emits a receipt, and rejects a replay. It is a protocol test, not proof that sponsor APIs are connected.
+
+Check the live integration gate:
+
+```bash
+cp .env.example .env
+pnpm spike
+```
+
+The spike exits non-zero and lists missing credentials until the environment is configured. It never silently swaps in mocks.
+
 ## Current status
 
-**Documentation-first workspace. No product implementation exists yet.**
+**Protocol core, Foxit live signing, Xano persistence, the live name.com execution path, the AI structured-proposal step, and a lightweight operator UI are all implemented and verified end-to-end.**
 
-The next build gate is an integration spike that must prove all three external operations before UI work begins:
+The integration gate is green:
 
-1. Foxit can create a draft warrant, open an embedded signing session, and report completed status.
-2. name.com sandbox can list, update, and re-read the selected DNS record.
-3. Xano can receive the Foxit notification, verify status server-side, atomically consume a warrant, and store the resulting event chain.
+1. Foxit creates a draft warrant, opens an embedded signing session, and reports completed status.
+2. name.com sandbox lists, updates, and re-reads the selected DNS record.
+3. Xano stores warrants, executions, and a hash-linked audit chain; the executor atomically reserves a warrant, runs the exact signed action, and verifies the result.
 
-If any core integration fails, the scope must shrink without faking the sponsor API path.
+The AI step (kimi) turns a plain-language request into a structured DNS proposal, and the operator UI (a small Node server plus one HTML page) drives propose -> sign -> execute -> receipt. Run `pnpm serve` and open `http://localhost:3000`.
 
 ## Sponsor fit
 
@@ -242,4 +272,4 @@ Those actions are deliberately out of scope for the prototype. The DNS demo exis
 
 ## License
 
-License selection is pending. Do not assume production or commercial usage rights until a license file is added.
+Released under the [MIT License](LICENSE). See the license file for details.
