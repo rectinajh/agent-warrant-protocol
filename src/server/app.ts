@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { Buffer } from "node:buffer";
 
 import { authorizeSignedWarrant } from "../execution/authorize-warrant.js";
 import { executeWarrant } from "../execution/execute-warrant.js";
@@ -28,6 +29,10 @@ export interface WarrantApp {
   replay(warrantId: string): Promise<unknown>;
   status(warrantId: string): Promise<{ warrant: unknown; audit: unknown }>;
   envelopeStatus(envelopeId: string): Promise<{ signed: boolean }>;
+  signedPdf(envelopeId: string): Promise<{ dataUrl: string }>;
+  publishProof(
+    warrantId: string,
+  ): Promise<{ record: DnsRecordSnapshot; proof: string }>;
 }
 
 /**
@@ -179,5 +184,53 @@ export function createWarrantApp(
     }
   }
 
-  return { current, propose, issue, execute, replay, status, envelopeStatus };
+  async function signedPdf(envelopeId: string): Promise<{ dataUrl: string }> {
+    const { signedPdf } =
+      await signingProvider.verifyCompletedEnvelope(envelopeId);
+    return {
+      dataUrl: `data:application/pdf;base64,${Buffer.from(signedPdf).toString("base64")}`,
+    };
+  }
+
+  async function publishProof(
+    warrantId: string,
+  ): Promise<{ record: DnsRecordSnapshot; proof: string }> {
+    const warrant = await repository.getWarrant(warrantId);
+    if (!warrant) {
+      throw new Error(`Unknown warrant ${warrantId}`);
+    }
+    if (warrant.state !== "EXECUTED") {
+      throw new Error(
+        `Cannot publish proof for a warrant in state ${warrant.state}`,
+      );
+    }
+
+    const audit = await repository.getAuditChain(warrantId);
+    const head = audit.at(-1)?.event_hash;
+    if (!head) {
+      throw new Error(`Warrant ${warrantId} has no audit chain head`);
+    }
+
+    const proof = `warrant:v1:${warrantId}:${head.slice(0, 16)}`;
+    const record = await namecom.createRecord(domain, {
+      type: "TXT",
+      host: "_warrant",
+      answer: proof,
+      ttl: 300,
+    });
+
+    return { record, proof };
+  }
+
+  return {
+    current,
+    propose,
+    issue,
+    execute,
+    replay,
+    status,
+    envelopeStatus,
+    signedPdf,
+    publishProof,
+  };
 }

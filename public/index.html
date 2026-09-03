@@ -286,6 +286,96 @@
         color: var(--muted);
         font-size: 12.5px;
       }
+      .cert {
+        position: relative;
+        border: 1px solid transparent;
+        border-radius: 18px;
+        padding: 20px;
+        overflow: hidden;
+        background:
+          linear-gradient(135deg, rgba(20, 28, 46, 0.9), rgba(16, 20, 36, 0.9))
+            padding-box,
+          linear-gradient(135deg, var(--blue), var(--violet), var(--teal))
+            border-box;
+      }
+      .cert::before {
+        content: "";
+        position: absolute;
+        inset: -70% -40%;
+        background: conic-gradient(
+          from 0deg,
+          transparent,
+          rgba(77, 163, 255, 0.18),
+          transparent 32%,
+          rgba(139, 92, 246, 0.18),
+          transparent 68%,
+          rgba(45, 212, 191, 0.18),
+          transparent
+        );
+        animation: spin 12s linear infinite;
+        pointer-events: none;
+      }
+      .cert > * {
+        position: relative;
+      }
+      .cert .crest {
+        font-size: 24px;
+        text-align: center;
+        margin-bottom: 4px;
+      }
+      .cert .ctitle {
+        text-align: center;
+        margin: 0 0 12px;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+      .cert-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .cert-item {
+        background: rgba(0, 0, 0, 0.24);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 11px;
+        padding: 10px 12px;
+        min-width: 0;
+      }
+      .cert-item .ck {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .cert-item .cv {
+        display: block;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12.5px;
+        word-break: break-all;
+      }
+      .cert-item.wide {
+        grid-column: 1 / -1;
+      }
+      .ghost {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--text);
+        box-shadow: none;
+      }
+      .proof {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(45, 212, 191, 0.08);
+        border: 1px solid rgba(45, 212, 191, 0.22);
+        color: #d6fff6;
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12.5px;
+        word-break: break-all;
+      }
       .arrow {
         font-size: 26px;
         color: var(--blue);
@@ -551,11 +641,49 @@
 
       <div class="card" id="result" hidden>
         <h2>执行回执</h2>
-        <pre id="resultBody"></pre>
+        <div class="cert" id="cert" hidden>
+          <div class="crest">◈</div>
+          <div class="ctitle">EXECUTION RECEIPT</div>
+          <div class="cert-grid">
+            <div class="cert-item wide">
+              <span class="ck">Receipt ID</span>
+              <span class="cv" id="certReceiptId">—</span>
+            </div>
+            <div class="cert-item wide">
+              <span class="ck">Warrant ID</span>
+              <span class="cv" id="certWarrantId">—</span>
+            </div>
+            <div class="cert-item">
+              <span class="ck">Requested</span>
+              <span class="cv" id="certRequested">—</span>
+            </div>
+            <div class="cert-item">
+              <span class="ck">Observed</span>
+              <span class="cv" id="certObserved">—</span>
+            </div>
+            <div class="cert-item">
+              <span class="ck">Verified At</span>
+              <span class="cv" id="certVerifiedAt">—</span>
+            </div>
+            <div class="cert-item">
+              <span class="ck">Chain Head</span>
+              <span class="cv" id="certChainHead">—</span>
+            </div>
+          </div>
+        </div>
+        <details style="margin-top: 12px">
+          <summary style="cursor: pointer; color: var(--muted)">
+            查看原始 JSON
+          </summary>
+          <pre id="resultBody"></pre>
+        </details>
         <div class="row">
           <button class="ghost" id="download">下载回执 JSON</button>
+          <button class="ghost" id="signedPdf">查看签名原件</button>
+          <button class="ghost" id="publishProof">发布 TXT 证明</button>
           <button class="ghost" id="replay">再次执行（应被拒绝）</button>
         </div>
+        <div id="proofResult" class="proof" hidden></div>
         <div id="replayResult" style="margin-top: 12px"></div>
       </div>
 
@@ -726,6 +854,22 @@
           lastResult = d;
           $("result").hidden = false;
           $("resultBody").textContent = JSON.stringify(d, null, 2);
+          $("proofResult").hidden = true;
+          $("proofResult").textContent = "";
+          if (d.status === "executed" && d.receipt) {
+            const r = d.receipt;
+            $("cert").hidden = false;
+            $("certReceiptId").textContent = r.receipt_id;
+            $("certWarrantId").textContent = r.warrant_id;
+            $("certRequested").textContent =
+              `${r.execution.requested.effect.host} ${r.execution.requested.effect.type} → ${r.execution.requested.effect.answer}`;
+            $("certObserved").textContent =
+              `${r.execution.observed.host} ${r.execution.observed.type} → ${r.execution.observed.answer}`;
+            $("certVerifiedAt").textContent = r.execution.verified_at;
+            $("certChainHead").textContent = r.event_chain_head;
+          } else {
+            $("cert").hidden = true;
+          }
           $("replayResult").innerHTML = "";
           await refreshStatus();
           markStep(3);
@@ -735,6 +879,35 @@
           setBusy($("executeBtn"), $("execSpin"), false);
         }
       }
+
+      $("signedPdf").onclick = async () => {
+        if (!S.envelopeId) return;
+        try {
+          const res = await fetch(
+            `/api/signed-pdf?envelope_id=${encodeURIComponent(S.envelopeId)}`,
+          );
+          const d = await res.json();
+          if (!res.ok) throw new Error(d.error || res.statusText);
+          window.open(d.dataUrl, "_blank", "noopener");
+        } catch (e) {
+          alert("无法读取签名原件：" + e.message);
+        }
+      };
+
+      $("publishProof").onclick = async () => {
+        if (!S.warrantId) return;
+        try {
+          const d = await post("/api/publish-proof", {
+            warrant_id: S.warrantId,
+          });
+          $("proofResult").hidden = false;
+          $("proofResult").textContent =
+            `TXT 证明已发布：${d.record.host} ${d.record.type} → ${d.record.answer}`;
+        } catch (e) {
+          $("proofResult").hidden = false;
+          $("proofResult").textContent = "TXT 证明失败：" + e.message;
+        }
+      };
 
       $("download").onclick = () => {
         if (!lastResult) return;

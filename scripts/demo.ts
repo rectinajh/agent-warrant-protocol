@@ -22,6 +22,14 @@ class SimulatedNameComProvider implements DnsProvider {
   async updateRecord(action: DnsRecordAction): Promise<void> {
     this.record = structuredClone(action.effect);
   }
+
+  async createRecord(
+    _domain: string,
+    record: DnsRecordSnapshot,
+  ): Promise<DnsRecordSnapshot> {
+    this.record = structuredClone(record);
+    return structuredClone(record);
+  }
 }
 
 const warrant = createAuthorizedWarrant();

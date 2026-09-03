@@ -95,6 +95,21 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/signed-pdf") {
+      sendJson(
+        res,
+        200,
+        await app.signedPdf(url.searchParams.get("envelope_id") ?? ""),
+      );
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/publish-proof") {
+      const body = await readJson(req);
+      sendJson(res, 200, await app.publishProof(String(body.warrant_id ?? "")));
+      return;
+    }
+
     const envelopeStatus = url.pathname.match(
       /^\/api\/envelope\/([^/]+)\/status$/,
     );

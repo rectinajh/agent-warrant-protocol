@@ -9,6 +9,10 @@ import type { AuditEvent, AuditEventInput } from "../protocol/audit.js";
 export interface DnsProvider {
   getRecord(domain: string, recordId: number): Promise<DnsRecordSnapshot>;
   updateRecord(action: DnsRecordAction): Promise<void>;
+  createRecord(
+    domain: string,
+    record: DnsRecordSnapshot,
+  ): Promise<DnsRecordSnapshot>;
 }
 
 export type ReservationResult =

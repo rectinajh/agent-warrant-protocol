@@ -67,6 +67,38 @@ describe("NameComDnsProvider", () => {
     ).toThrow("only permits the name.com sandbox");
   });
 
+  it("creates a TXT proof record through the sandbox endpoint", async () => {
+    const txtRecord = {
+      type: "TXT" as const,
+      host: "_warrant",
+      answer: "warrant:v1:receipt:abcd",
+      ttl: 300,
+    };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      response({
+        id: 42_001,
+        ...txtRecord,
+        domainName: "sandbox-domain.example",
+      }),
+    );
+    const provider = new NameComDnsProvider({
+      username: "demo-test",
+      apiToken: "placeholder-token",
+      fetch: fetcher,
+    });
+
+    await expect(
+      provider.createRecord("sandbox-domain.example", txtRecord),
+    ).resolves.toEqual(txtRecord);
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://api.dev.name.com/core/v1/domains/sandbox-domain.example/records",
+      expect.objectContaining({ method: "POST" }),
+    );
+    const init = fetcher.mock.calls[0]?.[1];
+    expect(JSON.parse(String(init?.body))).toEqual(txtRecord);
+  });
+
   it("distinguishes provider rejection from an ambiguous network result", async () => {
     const rejected = new NameComDnsProvider({
       username: "demo-test",

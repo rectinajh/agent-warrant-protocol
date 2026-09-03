@@ -110,4 +110,38 @@ export class NameComDnsProvider implements DnsProvider {
       );
     }
   }
+
+  async createRecord(
+    domain: string,
+    record: DnsRecordSnapshot,
+  ): Promise<DnsRecordSnapshot> {
+    const response = await this.fetcher(
+      `${this.baseUrl}/core/v1/domains/${encodeURIComponent(domain)}/records`,
+      {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify({
+          type: record.type,
+          host: record.host,
+          answer: record.answer,
+          ttl: record.ttl,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new ProviderRejectedError(
+        "name.com rejected the DNS record creation",
+        { operation: "create_record", status: response.status },
+      );
+    }
+
+    const created = (await response.json()) as NameComRecordResponse;
+    return dnsRecordSnapshotSchema.parse({
+      type: created.type,
+      host: created.host ?? "@",
+      answer: created.answer,
+      ttl: created.ttl,
+    });
+  }
 }

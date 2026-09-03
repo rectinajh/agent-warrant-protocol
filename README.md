@@ -166,7 +166,9 @@ The hackathon build intentionally supports only:
 - Foxit PDF generation and eSign;
 - Xano persistence, workflow logic, and audit events;
 - name.com sandbox read, update, and verification calls;
-- a downloadable execution receipt.
+- a downloadable execution receipt rendered as a certificate card;
+- direct retrieval of the signed warrant PDF from Foxit;
+- an optional `_warrant` TXT proof record published after execution.
 
 The ten-minute window limits when the signed warrant may be executed. It does not schedule a DNS rollback or limit how long the new DNS value remains active.
 

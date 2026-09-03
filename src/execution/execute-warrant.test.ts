@@ -43,6 +43,14 @@ class FakeDnsProvider implements DnsProvider {
       this.record = structuredClone(action.effect);
     }
   }
+
+  async createRecord(
+    _domain: string,
+    record: DnsRecordSnapshot,
+  ): Promise<DnsRecordSnapshot> {
+    this.record = structuredClone(record);
+    return structuredClone(record);
+  }
 }
 
 function executionInput(

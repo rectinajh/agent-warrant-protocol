@@ -537,6 +537,14 @@ Optional request:
 
 Returns the public-safe `receipt.v1` representation and hash-chain head.
 
+### `GET /api/signed-pdf`
+
+Returns the completed Foxit envelope's signed document as a base64 data URL, so the operator can open the original signed warrant. It accepts an `envelope_id` query parameter and re-verifies completion with Foxit rather than trusting a client-supplied URL.
+
+### `POST /api/publish-proof`
+
+Publishes a post-execution proof after the warrant reaches `EXECUTED`. It accepts a `warrant_id` body field, takes the audit-chain head, and creates a `_warrant` TXT record on the sandbox domain with the answer `warrant:v1:<warrant_id>:<head-prefix>`. This binds the live DNS record to a specific hash-chain head without smuggling a second mutation into the original signed action.
+
 ### `GET /health`
 
 Reports application health without exposing credential state. External dependency checks should be opt-in and redacted.
