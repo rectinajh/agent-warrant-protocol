@@ -578,69 +578,76 @@
       <header>
         <div class="logo">◈</div>
         <h1>Agent Warrant Protocol</h1>
-        <p class="tagline">AI 提出 · 人类授权 · 系统执行 · 全程留痕</p>
+        <p class="tagline">
+          AI proposes · Human authorizes · System executes · Fully audited
+        </p>
       </header>
 
       <div class="stepper">
-        <div class="step active" id="step1"><span class="num">1</span>提案</div>
+        <div class="step active" id="step1">
+          <span class="num">1</span>Propose
+        </div>
         <div class="line"></div>
-        <div class="step" id="step2"><span class="num">2</span>签名</div>
+        <div class="step" id="step2"><span class="num">2</span>Sign</div>
         <div class="line"></div>
-        <div class="step" id="step3"><span class="num">3</span>执行</div>
+        <div class="step" id="step3"><span class="num">3</span>Execute</div>
       </div>
 
       <div class="card">
-        <label for="request">告诉 AI 要执行什么高风险操作</label>
+        <label for="request"
+          >Tell the AI which high-risk action to perform</label
+        >
         <textarea
           id="request"
-          placeholder="例如：把 status 记录切到应急事故页面"
+          placeholder="e.g. switch the status record to the incident page"
         ></textarea>
         <div class="row">
-          <button id="propose">生成提案</button>
+          <button id="propose">Generate proposal</button>
           <span id="proposeSpin" class="spinner" hidden></span>
         </div>
       </div>
 
       <div class="card" id="proposal" hidden>
-        <h2>提案</h2>
+        <h2>Proposal</h2>
         <div class="compare">
           <div class="record">
-            <div class="rl">当前记录</div>
+            <div class="rl">Current record</div>
             <div class="rv" id="beforeVal">—</div>
             <div class="rm" id="beforeMeta"></div>
           </div>
           <div class="arrow">→</div>
           <div class="record target">
-            <div class="rl">目标记录</div>
+            <div class="rl">Target record</div>
             <div class="rv" id="afterVal">—</div>
             <div class="rm" id="afterMeta"></div>
           </div>
         </div>
         <div class="reason" id="reason"></div>
         <div class="row">
-          <button id="issue">签发 warrant</button>
+          <button id="issue">Issue warrant</button>
           <span id="issueSpin" class="spinner" hidden></span>
         </div>
       </div>
 
       <div class="card" id="signing" hidden>
-        <h2>等待签名</h2>
+        <h2>Awaiting signature</h2>
         <p style="margin-top: 0; color: var(--muted)">
-          打开下方链接完成 Foxit 签名，签完后执行按钮会自动解锁。
+          Open the link below to sign in Foxit; the execute button unlocks
+          automatically once signed.
         </p>
         <p><a id="signingLink" target="_blank" rel="noopener"></a></p>
         <div style="margin-top: 12px">
-          <span id="signingStatus" class="pill warn">等待签名…</span>
+          <span id="signingStatus" class="pill warn">Awaiting signature…</span>
         </div>
       </div>
 
       <div class="card" id="chain" hidden>
-        <h2>Warrant 生命周期</h2>
+        <h2>Warrant lifecycle</h2>
         <div class="statechain" id="statechain"></div>
       </div>
 
       <div class="card" id="result" hidden>
-        <h2>执行回执</h2>
+        <h2>Execution receipt</h2>
         <div class="cert" id="cert" hidden>
           <div class="crest">◈</div>
           <div class="ctitle">EXECUTION RECEIPT</div>
@@ -673,28 +680,30 @@
         </div>
         <details style="margin-top: 12px">
           <summary style="cursor: pointer; color: var(--muted)">
-            查看原始 JSON
+            View raw JSON
           </summary>
           <pre id="resultBody"></pre>
         </details>
         <div class="row">
-          <button class="ghost" id="download">下载回执 JSON</button>
-          <button class="ghost" id="signedPdf">查看签名原件</button>
-          <button class="ghost" id="publishProof">发布 TXT 证明</button>
-          <button class="ghost" id="replay">再次执行（应被拒绝）</button>
+          <button class="ghost" id="download">Download receipt JSON</button>
+          <button class="ghost" id="signedPdf">View signed original</button>
+          <button class="ghost" id="publishProof">Publish TXT proof</button>
+          <button class="ghost" id="replay">
+            Execute again (should be rejected)
+          </button>
         </div>
         <div id="proofResult" class="proof" hidden></div>
         <div id="replayResult" style="margin-top: 12px"></div>
       </div>
 
       <div class="card" id="audit" hidden>
-        <h2>审计链</h2>
+        <h2>Audit chain</h2>
         <div class="timeline" id="auditTimeline"></div>
       </div>
 
       <footer>
         <span class="dot"></span>
-        当前 DNS：<span id="dnsStatus">加载中…</span>
+        Current DNS: <span id="dnsStatus">Loading…</span>
       </footer>
     </div>
 
@@ -777,7 +786,7 @@
 
       $("propose").onclick = async () => {
         const req = $("request").value.trim();
-        if (!req) return alert("先填写请求");
+        if (!req) return alert("Enter a request first");
         setBusy($("propose"), $("proposeSpin"), true);
         try {
           const d = await post("/api/propose", { request: req });
@@ -788,10 +797,10 @@
           $("afterVal").textContent = d.action.effect.answer;
           $("afterMeta").textContent =
             `${d.action.effect.type} · host ${d.action.effect.host} · TTL ${d.action.effect.ttl}`;
-          $("reason").innerHTML = `<b>理由：</b>${d.reason}`;
+          $("reason").innerHTML = `<b>Reason: </b>${d.reason}`;
           markStep(1);
         } catch (e) {
-          alert("提案失败：" + e.message);
+          alert("Proposal failed: " + e.message);
         } finally {
           setBusy($("propose"), $("proposeSpin"), false);
         }
@@ -808,12 +817,12 @@
           $("signingLink").textContent = d.signing_url;
           $("signing").hidden = false;
           $("signingStatus").className = "pill warn";
-          $("signingStatus").textContent = "等待签名…";
+          $("signingStatus").textContent = "Awaiting signature…";
           pollSigning();
           refreshStatus();
           markStep(2);
         } catch (e) {
-          alert("签发失败：" + e.message);
+          alert("Issue failed: " + e.message);
         } finally {
           setBusy($("issue"), $("issueSpin"), false);
         }
@@ -830,12 +839,12 @@
             if (d.signed) {
               clearInterval(timer);
               $("signingStatus").className = "pill ok";
-              $("signingStatus").textContent = "已签名，可以执行";
+              $("signingStatus").textContent = "Signed, ready to execute";
               if (!$("executeBtn")) {
                 const row = document.createElement("div");
                 row.className = "row";
                 row.innerHTML =
-                  '<button id="executeBtn">执行</button><span id="execSpin" class="spinner" hidden></span>';
+                  '<button id="executeBtn">Execute</button><span id="execSpin" class="spinner" hidden></span>';
                 $("signing").appendChild(row);
                 $("executeBtn").onclick = doExecute;
               }
@@ -874,7 +883,7 @@
           await refreshStatus();
           markStep(3);
         } catch (e) {
-          alert("执行失败：" + e.message);
+          alert("Execution failed: " + e.message);
         } finally {
           setBusy($("executeBtn"), $("execSpin"), false);
         }
@@ -890,7 +899,7 @@
           if (!res.ok) throw new Error(d.error || res.statusText);
           window.open(d.dataUrl, "_blank", "noopener");
         } catch (e) {
-          alert("无法读取签名原件：" + e.message);
+          alert("Unable to load signed original: " + e.message);
         }
       };
 
@@ -902,10 +911,10 @@
           });
           $("proofResult").hidden = false;
           $("proofResult").textContent =
-            `TXT 证明已发布：${d.record.host} ${d.record.type} → ${d.record.answer}`;
+            `TXT proof published: ${d.record.host} ${d.record.type} → ${d.record.answer}`;
         } catch (e) {
           $("proofResult").hidden = false;
-          $("proofResult").textContent = "TXT 证明失败：" + e.message;
+          $("proofResult").textContent = "TXT proof failed: " + e.message;
         }
       };
 
@@ -931,8 +940,8 @@
           const d = await res.json();
           const ok = d.ok === true;
           $("replayResult").innerHTML = ok
-            ? '<span class="pill warn">意外：重放成功</span>'
-            : `<span class="pill err">拒绝：${d.reason}</span>`;
+            ? '<span class="pill warn">Unexpected: replay succeeded</span>'
+            : `<span class="pill err">Rejected: ${d.reason}</span>`;
         } catch (e) {
           $("replayResult").innerHTML =
             `<span class="pill err">${e.message}</span>`;
@@ -944,9 +953,9 @@
           const res = await fetch("/api/current");
           const d = await res.json();
           $("dnsStatus").textContent =
-            `${d.host} ${d.type} → ${d.answer}（TTL ${d.ttl}）`;
+            `${d.host} ${d.type} → ${d.answer} (TTL ${d.ttl})`;
         } catch {
-          $("dnsStatus").textContent = "无法读取";
+          $("dnsStatus").textContent = "Unavailable";
         }
       }
 
