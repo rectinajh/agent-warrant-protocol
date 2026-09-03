@@ -128,12 +128,12 @@ The result is an execution receipt that can answer three questions:
 
 ## The 90-second demo
 
-1. Enter: "Switch `status.sandbox-domain.example` to the emergency page now."
+1. Enter: "Switch `status.agent-warrant-demo.com` to the emergency page now."
 2. Watch the agent produce a structured proposal and risk explanation.
 3. Compare the current and proposed DNS values.
 4. Generate the warrant PDF.
 5. Sign it inside the Foxit embedded signing view.
-6. See the execution button unlock only after server-side verification.
+6. See the execution button unlock automatically once signing is verified server-side.
 7. Execute the change through the name.com sandbox API.
 8. Re-read the DNS record and show the successful receipt.
 9. Attempt to execute the same warrant again and show the one-time nonce rejection.
@@ -241,6 +241,12 @@ The integration gate is green:
 3. Xano stores warrants, executions, and a hash-linked audit chain; the executor atomically reserves a warrant, runs the exact signed action, and verifies the result.
 
 The AI step (kimi) turns a plain-language request into a structured DNS proposal, and the operator UI (a small Node server plus one HTML page) drives propose -> sign -> execute -> receipt. Run `pnpm serve` and open `http://localhost:3000`.
+
+## Security and disclosure
+
+This is a hackathon prototype. All three sponsor integrations are exercised live: Foxit eSign, name.com sandbox DNS, and Xano persistence. No mock fallback is used in the operator flow.
+
+All provider credentials live in `.env`, which is gitignored and never committed. Before treating this repository as anything more than a demo, lock the Xano API group behind an API key: in Xano, open **Agent Warrant API Group → Settings → Security → Require Authentication**. The Xano instance host and API-group canonical appear in the documentation and tests, so the endpoints must require a bearer token rather than remaining publicly callable.
 
 ## Sponsor fit
 
