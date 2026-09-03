@@ -16,3 +16,15 @@ Key routing rules:
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
 - Author a backlog-ready spec/issue → invoke /spec
+
+## Project
+
+Agent Warrant Protocol is a hackathon prototype for human-authorized AI actions. An AI agent may propose a high-risk DNS change, but it cannot execute the change until a person signs a narrowly scoped, expiring, single-use warrant through Foxit eSign.
+
+Project documentation is the current source of truth:
+
+- `README.md`: product background, value proposition, demo story, and project entry point.
+- `docs/REQUIREMENTS.md`: MVP scope, user requirements, acceptance criteria, and delivery plan.
+- `docs/ARCHITECTURE.md`: trust boundaries, state machines, data model, APIs, integrations, and threat model.
+
+No product implementation exists yet. Do not describe planned interfaces as implemented. Keep the hackathon MVP restricted to one preconfigured name.com sandbox DNS record unless the requirements document is deliberately revised.
